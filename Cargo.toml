@@ -1,0 +1,18 @@
+[package]
+name = "portal-chat"
+version = "0.1.0"
+authors = ["mic"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.11.1"
+actix-web = { version = "4.0.0-beta.5", features = ["rustls"] }
+actix-web-actors = "4.0.0-beta.4"
+tonic = "0.4.3"
+futures = "0.3.15"
+serde = "1.0.125"
+uuid = { version = "0.8.2", features = ["v4", "serde"] }
+tokio-postgres = "0.7.2"
+deadpool-postgres = "0.9.0"

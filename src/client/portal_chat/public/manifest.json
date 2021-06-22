@@ -1,0 +1,10 @@
+{
+  "name": "portal-chat",
+  "short_name": "chat",
+  "theme_color": "#0d47a1",
+  "background_color": "#E5E5E5",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/."
+}
