@@ -5,7 +5,7 @@ use actix_web_actors::ws::{WebsocketContext, Message, ProtocolError};
 use uuid::Uuid;
 
 use super::lobby::Lobby;
-use crate::actors::ws_message::{Disconnect, Connect, WsMessage, Socket, ClientMessage};
+use crate::messages::ws_messages::{Disconnect, Socket, Connect, RoomMessage, WsMessage};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -47,7 +47,7 @@ impl Actor for WebSocket {
         self.lobby.send(Connect {
             addr: socket,
             lobby_id: self.room,
-            self_id: self.id
+            user_id: self.id
         })
             .into_actor(self)
             .then(|res, _, ctx| {
@@ -81,8 +81,8 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebSocket {
             },
             Ok(Message::Nop) => (),
             Ok(Message::Continuation(_)) => ctx.stop(),
-            Ok(Message::Text(msg)) => self.lobby.do_send(ClientMessage {
-                id: self.id,
+            Ok(Message::Text(msg)) => self.lobby.do_send(RoomMessage {
+                sender_id: self.id,
                 msg: msg.to_string(),
                 room_id: self.room
             }),

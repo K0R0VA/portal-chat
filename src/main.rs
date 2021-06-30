@@ -1,15 +1,13 @@
 mod actors;
 mod routes;
+mod messages;
 
-use actix_web::{App, HttpServer, Result, HttpResponse, http};
+use actix_web::{App, HttpServer, Result};
 use actix_web::web;
 use actix::Actor;
 use actix_files as fs;
 use crate::routes::start_connection;
 use crate::actors::lobby::Lobby;
-use actix_web::dev::{Service};
-use futures::prelude::future::ok;
-use futures::future::Either;
 use rustls::{ServerConfig, NoClientAuth};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 
@@ -42,17 +40,6 @@ async fn main() -> std::io::Result<()> {
     let config = load_ssl();
     HttpServer::new(move || App::new()
         .data(chat_server.clone())
-        .wrap_fn(|req, res| {
-            if req.connection_info().scheme() == "http" {
-                let host = req.connection_info().host().to_owned();
-                let uri = req.uri().to_owned();
-                let url = format!("https://{}{}", host, uri);
-                return Either::Left(ok(req.into_response(HttpResponse::TemporaryRedirect()
-                    .header(http::header::LOCATION, url)
-                    .finish())));
-            }
-            Either::Right(res.call(req))
-        })
         .service(start_connection)
         .service(fs::Files::new("/static", "static")
             .prefer_utf8(true))
@@ -60,7 +47,7 @@ async fn main() -> std::io::Result<()> {
             web::resource("")
                 .route(web::get().to(index))
         ))
-        .bind_rustls("192.168.0.7:8080", config)?
+        .bind_rustls("192.168.0.7:8081", config)?
         .run()
         .await
 }
