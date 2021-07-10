@@ -1,18 +1,20 @@
 use std::sync::Arc;
 use parking_lot::RwLock;
-use std::collections::HashSet;
+use std::collections::{HashMap};
 use actix::{Addr, Actor, Context, Handler, AsyncContext, WrapFuture};
 use std::iter::FromIterator;
 use futures::StreamExt;
-use crate::messages::ws_messages::{RoomMessage, WsMessage, ConnectToRoom, DisconnectFromRoom, Socket};
+
+use crate::messages::ws_messages::{RoomMessage, WsMessage, ConnectToRoom, DisconnectFromRoom};
+use crate::actors::web_socket::WebSocket;
 
 pub struct Room {
-    pub(crate) participants: Arc<RwLock<HashSet<Arc<Socket>>>>,
+    pub(crate) participants: Arc<RwLock<HashMap<i32, Addr<WebSocket>>>>,
 }
 
 impl Room {
-    pub fn new(socket: Arc<Socket>) -> Addr<Self> {
-        let hash_map: HashSet<Arc<Socket>> = HashSet::from_iter(vec![socket].into_iter());
+    pub fn new(socket: Addr<WebSocket>, id: i32) -> Addr<Self> {
+        let hash_map = HashMap::from_iter(vec![(id, socket)].into_iter());
         let participants = Arc::new(RwLock::new(hash_map));
         Room {
             participants
@@ -31,9 +33,9 @@ impl Handler<RoomMessage> for Room {
         let participants = Arc::clone(&self.participants);
         ctx.spawn(async move {
             futures::stream::iter(participants.read().iter()
-                .map(|socket| (socket, msg.msg.clone())))
+                .map(|(_, socket)| (socket, msg.msg.clone())))
                 .for_each(|(socket, msg)| async move {
-                    socket.send(WsMessage(msg)).await;
+                    if let Ok(()) = socket.send(WsMessage(msg)).await {}
                 }).await;
         }.into_actor(self));
     }
@@ -43,7 +45,7 @@ impl Handler<ConnectToRoom> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: ConnectToRoom, _ctx: &mut Self::Context) -> Self::Result {
-        self.participants.write().insert( msg.addr);
+        self.participants.write().insert( msg.sender_id, msg.addr);
     }
 }
 
@@ -51,6 +53,6 @@ impl Handler<DisconnectFromRoom> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: DisconnectFromRoom, _ctx: &mut Self::Context) -> Self::Result {
-        self.participants.write().remove(&*msg.socket);
+        self.participants.write().remove(&msg.socket_id);
     }
 }

@@ -1,54 +1,52 @@
-use actix::{Actor, Context, Handler, Addr};
-use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
 use crate::actors::room::Room;
-use actix::dev::MessageResponse;
-use std::sync::Arc;
-use parking_lot::lock_api::RwLock;
-use crate::messages::ws_messages::{Socket, CreateRoom, Connect, Disconnect, RoomMessage, PrivateMessage, WsMessage};
+use crate::messages::ws_messages::{ CreateRoom, Connect, Disconnect, RoomMessage, PrivateMessage, WsMessage};
+use crate::actors::web_socket::WebSocket;
 
-pub struct Lobby {
-    rooms: HashMap<Uuid, Addr<Room>>,
-    sessions: HashMap<Uuid, Arc<Socket>>
+use actix::{Actor, Context, Handler, Addr};
+use std::collections::{HashMap};
+
+pub struct State {
+    rooms: HashMap<i32, Addr<Room>>,
+    sessions: HashMap<i32, Addr<WebSocket>>
 }
 
-impl Actor for Lobby {
+impl Actor for State {
     type Context = Context<Self>;
 }
 
-impl Default for Lobby {
+impl Default for State {
     fn default() -> Self {
-       Lobby {
+       State {
            rooms: HashMap::new(),
            sessions: HashMap::new()
        }
     }
 }
 
-impl Handler<CreateRoom> for Lobby {
+impl Handler<CreateRoom> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: CreateRoom, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CreateRoom, _ctx: &mut Self::Context) -> Self::Result {
         match self.sessions.get(&msg.creator_id) {
             Some(socket) => {
-                self.rooms.insert(msg.id, Room::new(Arc::clone(socket))).unwrap();
+                self.rooms.insert(msg.id, Room::new(socket.clone(), msg.creator_id)).unwrap();
             },
             None => {}
         }
     }
 }
 
-impl Handler<Connect> for Lobby {
+impl Handler<Connect> for State {
     type Result = ();
-    fn handle(&mut self, msg: Connect, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _msg: Connect, _ctx: &mut Self::Context) -> Self::Result {
 
     }
 }
 
-impl Handler<Disconnect> for Lobby {
+impl Handler<Disconnect> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _msg: Disconnect, _ctx: &mut Self::Context) -> Self::Result {
         // if let Some(_) = self.sessions.remove(&msg.id) {
         //     self.rooms
         //         .get(&msg.room_id)
@@ -69,7 +67,7 @@ impl Handler<Disconnect> for Lobby {
     }
 }
 
-impl Handler<RoomMessage> for Lobby {
+impl Handler<RoomMessage> for State {
     type Result = ();
     fn handle(&mut self, msg: RoomMessage, _ctx: &mut Self::Context) -> Self::Result {
         if let Some(room) = self.rooms.get(&msg.room_id) {
@@ -78,13 +76,13 @@ impl Handler<RoomMessage> for Lobby {
     }
 }
 
-impl Handler<PrivateMessage> for Lobby {
+impl Handler<PrivateMessage> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: PrivateMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: PrivateMessage, _ctx: &mut Self::Context) -> Self::Result {
         if let Some(recipient) = self.sessions.get(&msg.recipient_id) {
             recipient.do_send(WsMessage(msg.msg.clone()));
         }
-        self.sessions.get(&msg.id).and_then(|sender| Some(sender.do_send(WsMessage(msg.msg)))).unwrap();
+        if let Some(()) = self.sessions.get(&msg.id).and_then(|sender| Some(sender.do_send(WsMessage(msg.msg)))) {}
     }
 }

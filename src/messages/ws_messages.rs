@@ -1,8 +1,7 @@
-use actix::{Message, Recipient};
-use uuid::Uuid;
-use std::sync::Arc;
+use actix::{Message, Addr};
+use serde::Deserialize;
+use crate::actors::web_socket::WebSocket;
 
-pub type Socket = Recipient<WsMessage>;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -11,52 +10,50 @@ pub struct WsMessage(pub String);
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Connect {
-    pub addr: Socket,
-    pub lobby_id: Uuid,
-    pub user_id: Uuid,
+    pub addr: Addr<WebSocket>,
+    pub user_id: i32,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ConnectToRoom {
-    pub addr: Arc<Socket>,
-    pub sender_id: Uuid,
+    pub addr: Addr<WebSocket>,
+    pub sender_id: i32,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
-    pub room_id: Uuid,
-    pub id: Uuid,
+    pub id: i32,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct DisconnectFromRoom {
-    pub socket: Arc<Socket>
+    pub socket_id: i32,
 }
 
-#[derive(Message)]
+#[derive(Message, Deserialize)]
 #[rtype(result = "()")]
 pub struct RoomMessage {
-    pub sender_id: Uuid,
-    pub room_id: Uuid,
+    pub sender_id: i32,
+    pub room_id: i32,
     pub msg: String,
 }
 
-#[derive(Message)]
+#[derive(Message, Deserialize)]
 #[rtype(result = "()")]
 pub struct PrivateMessage {
-    pub id: Uuid,
-    pub recipient_id: Uuid,
+    pub id: i32,
+    pub recipient_id: i32,
     pub msg: String,
 }
 
-#[derive(Message)]
+#[derive(Message, Deserialize)]
 #[rtype(result = "()")]
 pub struct CreateRoom {
-    pub id: Uuid,
-    pub creator_id: Uuid,
+    pub id: i32,
+    pub creator_id: i32,
 }
 
 
