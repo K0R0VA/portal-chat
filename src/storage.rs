@@ -1,5 +1,5 @@
 use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod, Pool};
-use tokio_postgres::NoTls;
+use deadpool_postgres::tokio_postgres::NoTls;
 
 pub fn get_config() -> Config {
     let mut cfg = Config::new();

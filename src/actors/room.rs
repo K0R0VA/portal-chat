@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use parking_lot::RwLock;
-use std::collections::{HashMap};
 use actix::{Addr, Actor, Context, Handler, AsyncContext, WrapFuture};
 use std::iter::FromIterator;
+use std::collections::{HashMap};
+use std::sync::Arc;
 use futures::StreamExt;
 
 use crate::messages::ws_messages::{RoomMessage, WsMessage, ConnectToRoom, DisconnectFromRoom};
@@ -31,13 +31,17 @@ impl Handler<RoomMessage> for Room {
 
     fn handle(&mut self, msg: RoomMessage, ctx: &mut Self::Context) -> Self::Result {
         let participants = Arc::clone(&self.participants);
-        ctx.spawn(async move {
-            futures::stream::iter(participants.read().iter()
-                .map(|(_, socket)| (socket, msg.msg.clone())))
-                .for_each(|(socket, msg)| async move {
-                    if let Ok(()) = socket.send(WsMessage(msg)).await {}
-                }).await;
-        }.into_actor(self));
+        ctx.spawn(
+            async move {
+                futures::stream::iter(participants
+                    .read()
+                    .iter()
+                    .map(move |(_, socket)| (socket, msg.msg.clone())))
+                    .for_each_concurrent(None, move |(socket, msg)| async move {
+                        if let Ok(()) = socket.send(WsMessage(msg)).await {}
+                    }).await
+            }.into_actor(self)
+        );
     }
 }
 
@@ -45,7 +49,7 @@ impl Handler<ConnectToRoom> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: ConnectToRoom, _ctx: &mut Self::Context) -> Self::Result {
-        self.participants.write().insert( msg.sender_id, msg.addr);
+        self.participants.write().insert(msg.sender_id, msg.addr);
     }
 }
 
