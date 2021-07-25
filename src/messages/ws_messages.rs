@@ -1,6 +1,6 @@
 use actix::{Message, Addr};
 use serde::Deserialize;
-use crate::actors::web_socket::WebSocket;
+use crate::actors::web_socket::{WebSocket};
 
 
 #[derive(Message)]
@@ -10,7 +10,7 @@ pub struct WsMessage(pub String);
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Connect {
-    pub addr: Addr<WebSocket>,
+    pub client: Addr<WebSocket>,
     pub user_id: i32,
 }
 

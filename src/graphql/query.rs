@@ -9,7 +9,7 @@ pub struct Query;
 
 #[Object]
 impl Query {
-    async fn user(&self, ctx: &Context<'_>, id: i32) -> Result<User> {
+    async fn user(&self, ctx: &Context<'_>, id: i32) -> Result<User, String> {
         let fields = ctx
             .field()
             .selection_set()
@@ -20,7 +20,7 @@ impl Query {
             .map(|field| field.name())
             .join(",");
         let loader = ctx.data_unchecked::<DataLoader<UserLoader>>();
-        let user = loader.load_one(UserId(id, fields)).await.unwrap();
+        let user = loader.load_one(UserId(id, fields)).await?;
         user.ok_or_else(|| "Not found".into())
     }
 }

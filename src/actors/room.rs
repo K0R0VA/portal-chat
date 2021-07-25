@@ -6,7 +6,7 @@ use std::sync::Arc;
 use futures::StreamExt;
 
 use crate::messages::ws_messages::{RoomMessage, WsMessage, ConnectToRoom, DisconnectFromRoom};
-use crate::actors::web_socket::WebSocket;
+use crate::actors::web_socket::{WebSocket};
 
 pub struct Room {
     pub(crate) participants: Arc<RwLock<HashMap<i32, Addr<WebSocket>>>>,

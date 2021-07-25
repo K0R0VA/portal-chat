@@ -1,6 +1,6 @@
 use crate::actors::room::Room;
 use crate::messages::ws_messages::{ CreateRoom, Connect, Disconnect, RoomMessage, PrivateMessage, WsMessage};
-use crate::actors::web_socket::WebSocket;
+use crate::actors::web_socket::{WebSocket};
 
 use actix::{Actor, Context, Handler, Addr};
 use std::collections::{HashMap};

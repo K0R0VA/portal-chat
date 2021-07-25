@@ -17,9 +17,9 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
-    pub fn new(lobby: Addr<State>) -> Self {
+    pub fn new(lobby: Addr<State>, id: i32) -> Self {
         WebSocket {
-            id: 0,
+            id,
             hb: Instant::now(),
             lobby,
         }
@@ -40,9 +40,9 @@ impl Actor for WebSocket {
     type Context = WebsocketContext<Self>;
     fn started(&mut self, ctx: &mut WebsocketContext<Self>) {
         self.heartbeat(ctx);
-        let addr = ctx.address();
+        let client = ctx.address();
         self.lobby.send(Connect {
-            addr,
+            client,
             user_id: self.id
         })
             .into_actor(self)
