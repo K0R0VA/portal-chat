@@ -2,7 +2,7 @@ use async_graphql::{Object, Context, Result, Upload};
 use actix::Addr;
 
 use crate::actors::file_writer::{FileWriter};
-use crate::messages::db_messages::{SignUp, SignIn};
+use crate::messages::db_messages::{SignUp, SignIn, Logout};
 use crate::storage::Storage;
 use crate::messages::fs_messages::Avatar;
 use crate::graphql::inputs::Credentials;
@@ -21,6 +21,12 @@ impl Mutation {
         let storage = ctx.data_unchecked::<Addr<Storage>>();
         let user = storage.send(SignIn { name: credentials.name, password: credentials.password }).await?;
         user
+    }
+
+    async fn logout(&self, ctx: &Context<'_>, user_id: i32) -> anyhow::Result<i32> {
+        let storage = ctx.data_unchecked::<Addr<Storage>>();
+        storage.send(Logout { user_id }).await??;
+        Ok(user_id)
     }
 
     async fn load_avatar(&self, ctx: &Context<'_>, user_id: i32, file: Upload) -> Result<bool> {

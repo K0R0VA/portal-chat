@@ -16,4 +16,10 @@ pub struct SignIn {
     pub password: String
 }
 
+#[derive(Message)]
+#[rtype(result = "Result<()>")]
+pub struct Logout {
+    pub user_id: i32
+}
+
 

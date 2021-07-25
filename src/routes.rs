@@ -1,6 +1,6 @@
-use actix_web::{get, post, HttpResponse, HttpRequest, Result, web, guard};
+use actix_web::{get, post, HttpResponse, HttpRequest, Result};
 use actix_web::web::{Data, ServiceConfig, Payload, Path};
-use async_graphql_actix_web::{Request, Response, WSSubscription};
+use async_graphql_actix_web::{Request, Response};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use actix::{Actor, Addr};
 use async_graphql::{Schema, EmptySubscription};
