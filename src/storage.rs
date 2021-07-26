@@ -1,7 +1,8 @@
 use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod, Pool};
 use deadpool_postgres::tokio_postgres::NoTls;
+use deadpool_postgres::config::ConfigError;
 
-pub fn get_config() -> Config {
+pub fn get_pool() -> Result<Pool, ConfigError> {
     let mut cfg = Config::new();
     cfg.host = Some("localhost".to_string());
     cfg.port = Some(5432);
@@ -11,16 +12,5 @@ pub fn get_config() -> Config {
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
-    cfg
-}
-
-#[derive(Clone)]
-pub struct Storage {
-    pub(crate) pool: Pool,
-}
-
-impl Default for Storage {
-    fn default() -> Self {
-        Storage { pool: get_config().create_pool(NoTls).unwrap() }
-    }
+    cfg.create_pool(NoTls)
 }

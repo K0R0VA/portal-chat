@@ -1,5 +1,5 @@
 #![feature(try_blocks)]
-#[forbid(unsafe_code, unused_imports, incomplete_features)]
+#[forbid(unsafe_code, incomplete_features)]
 
 mod actors;
 mod routes;

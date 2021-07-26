@@ -1,13 +1,14 @@
 use crate::actors::room::Room;
-use crate::messages::ws_messages::{ CreateRoom, Connect, Disconnect, RoomMessage, PrivateMessage, WsMessage};
-use crate::actors::web_socket::{WebSocket};
+use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty, GetUser, NewRoom};
+use crate::actors::user::User;
 
-use actix::{Actor, Context, Handler, Addr};
+
+use actix::{Actor, Context, Handler, Addr, AsyncContext};
 use std::collections::{HashMap};
 
 pub struct State {
     rooms: HashMap<i32, Addr<Room>>,
-    sessions: HashMap<i32, Addr<WebSocket>>
+    users: HashMap<i32, Addr<User>>,
 }
 
 impl Actor for State {
@@ -16,73 +17,75 @@ impl Actor for State {
 
 impl Default for State {
     fn default() -> Self {
-       State {
-           rooms: HashMap::new(),
-           sessions: HashMap::new()
-       }
+        Self {
+            rooms: Default::default(),
+            users: Default::default(),
+        }
     }
 }
 
 impl Handler<CreateRoom> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: CreateRoom, _ctx: &mut Self::Context) -> Self::Result {
-        match self.sessions.get(&msg.creator_id) {
-            Some(socket) => {
-                self.rooms.insert(msg.id, Room::new(socket.clone(), msg.creator_id)).unwrap();
-            },
-            None => {}
-        }
+    fn handle(&mut self, msg: CreateRoom, ctx: &mut Self::Context) -> Self::Result {
+        let room = Room::new(msg.id, ctx.address());
+        self.users.get(&msg.creator_id)
+            .map(|creator| {
+                let _ = creator.send(NewRoom {
+                    id: msg.id,
+                    room: room.clone(),
+                });
+            });
+        self.rooms.insert(msg.id, room);
     }
 }
 
 impl Handler<Connect> for State {
-    type Result = ();
-    fn handle(&mut self, _msg: Connect, _ctx: &mut Self::Context) -> Self::Result {
+    type Result = Addr<User>;
 
+    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+        let state = ctx.address();
+        let user_rooms = msg.rooms.iter().map(|key| {
+            if let Some((key, room)) = self.rooms.get_key_value(key) {
+                return (*key, room.clone());
+            }
+            let room = self.rooms.insert(*key, Room::new(*key, state.clone()));
+            (*key, room.expect(""))
+        }).collect();
+        let user_friends = self.users.iter()
+            .filter(|(id, _)| msg.friends.contains(id))
+            .map(|(key, friend)| (*key, friend.clone()))
+            .collect();
+        User {
+            id: msg.user_id,
+            sessions: HashMap::with_capacity(1),
+            rooms: user_rooms,
+            contacts: user_friends,
+            state,
+        }.start()
     }
 }
 
 impl Handler<Disconnect> for State {
     type Result = ();
 
-    fn handle(&mut self, _msg: Disconnect, _ctx: &mut Self::Context) -> Self::Result {
-        // if let Some(_) = self.sessions.remove(&msg.id) {
-        //     self.rooms
-        //         .get(&msg.room_id)
-        //         .unwrap()
-        //         .iter()
-        //         .filter(|conn_id| *conn_id.to_owned() != msg.id)
-        //         .for_each(|conn_id| {
-        //             self.send_message(&format!("{} покинул беседу", &msg.id), conn_id)
-        //         });
-        //     if let Some(lobby) = self.rooms.get_mut(&msg.room_id) {
-        //         if lobby.is_empty() {
-        //             self.rooms.remove(&msg.room_id);
-        //         } else {
-        //             lobby.remove(&msg.id);
-        //         }
-        //     }
-        // }
+    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
+        self.users.remove(&msg.id);
     }
 }
 
-impl Handler<RoomMessage> for State {
+impl Handler<RoomIsEmpty> for State {
     type Result = ();
-    fn handle(&mut self, msg: RoomMessage, _ctx: &mut Self::Context) -> Self::Result {
-        if let Some(room) = self.rooms.get(&msg.room_id) {
-            room.do_send(msg);
-        }
+
+    fn handle(&mut self, msg: RoomIsEmpty, _: &mut Self::Context) -> Self::Result {
+        self.rooms.remove(&msg.0);
     }
 }
 
-impl Handler<PrivateMessage> for State {
-    type Result = ();
+impl Handler<GetUser> for State {
+    type Result = Option<Addr<User>>;
 
-    fn handle(&mut self, msg: PrivateMessage, _ctx: &mut Self::Context) -> Self::Result {
-        if let Some(recipient) = self.sessions.get(&msg.recipient_id) {
-            recipient.do_send(WsMessage(msg.msg.clone()));
-        }
-        if let Some(()) = self.sessions.get(&msg.id).and_then(|sender| Some(sender.do_send(WsMessage(msg.msg)))) {}
+    fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
+        self.users.get(&msg.user_id).map(|user| user.clone())
     }
 }

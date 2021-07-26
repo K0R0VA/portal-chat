@@ -1,47 +1,44 @@
-use parking_lot::RwLock;
-use actix::{Addr, Actor, Context, Handler, AsyncContext, WrapFuture};
-use std::iter::FromIterator;
+use actix::{Addr, Actor, Context, Handler, ActorContext, Running};
 use std::collections::{HashMap};
-use std::sync::Arc;
-use futures::StreamExt;
+use uuid::Uuid;
 
-use crate::messages::ws_messages::{RoomMessage, WsMessage, ConnectToRoom, DisconnectFromRoom};
-use crate::actors::web_socket::{WebSocket};
+
+use crate::messages::ws_messages::{RoomMessage, ConnectToRoom, DisconnectFromRoom, RoomIsEmpty};
+use crate::actors::session::{Session};
+use crate::actors::state::State;
 
 pub struct Room {
-    pub(crate) participants: Arc<RwLock<HashMap<i32, Addr<WebSocket>>>>,
+    pub id: i32,
+    pub participants: HashMap<Uuid, Addr<Session>>,
+    pub state: Addr<State>
 }
 
 impl Room {
-    pub fn new(socket: Addr<WebSocket>, id: i32) -> Addr<Self> {
-        let hash_map = HashMap::from_iter(vec![(id, socket)].into_iter());
-        let participants = Arc::new(RwLock::new(hash_map));
-        Room {
-            participants
+    pub fn new(id: i32, state: Addr<State>) -> Addr<Self> {
+        Self {
+            id,
+            participants: Default::default(),
+            state
         }.start()
     }
 }
 
 impl Actor for Room {
     type Context = Context<Self>;
+
+    fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
+        let _ = self.state.send(RoomIsEmpty(self.id));
+        Running::Stop
+    }
 }
 
 impl Handler<RoomMessage> for Room {
     type Result = ();
 
-    fn handle(&mut self, msg: RoomMessage, ctx: &mut Self::Context) -> Self::Result {
-        let participants = Arc::clone(&self.participants);
-        ctx.spawn(
-            async move {
-                futures::stream::iter(participants
-                    .read()
-                    .iter()
-                    .map(move |(_, socket)| (socket, msg.msg.clone())))
-                    .for_each_concurrent(None, move |(socket, msg)| async move {
-                        if let Ok(()) = socket.send(WsMessage(msg)).await {}
-                    }).await
-            }.into_actor(self)
-        );
+    fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) -> Self::Result {
+        self.participants.iter().for_each(|(_, participant)| {
+            let _ = participant.send(msg.clone());
+        })
     }
 }
 
@@ -49,14 +46,15 @@ impl Handler<ConnectToRoom> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: ConnectToRoom, _ctx: &mut Self::Context) -> Self::Result {
-        self.participants.write().insert(msg.sender_id, msg.addr);
+        self.participants.insert(msg.session_id, msg.session);
     }
 }
 
 impl Handler<DisconnectFromRoom> for Room {
     type Result = ();
 
-    fn handle(&mut self, msg: DisconnectFromRoom, _ctx: &mut Self::Context) -> Self::Result {
-        self.participants.write().remove(&msg.socket_id);
+    fn handle(&mut self, msg: DisconnectFromRoom, ctx: &mut Self::Context) -> Self::Result {
+        self.participants.remove(&msg.socket_id);
+        self.participants.is_empty().then(|| ctx.stop());
     }
 }

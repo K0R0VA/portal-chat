@@ -8,7 +8,7 @@ use crate::graphql::models::room::RoomId;
 use crate::graphql::loaders::LoadResult;
 
 
-pub struct RoomMessagesLoader(Pool);
+pub struct RoomMessagesLoader(pub Pool);
 
 #[async_trait::async_trait]
 impl Loader<RoomId> for RoomMessagesLoader {

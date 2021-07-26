@@ -1,5 +1,6 @@
 pub mod state;
-pub mod web_socket;
-mod room;
-mod storage;
+pub mod session;
+pub mod room;
 pub mod file_writer;
+pub mod mutation_handlers;
+pub mod user;

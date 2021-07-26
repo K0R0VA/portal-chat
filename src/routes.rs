@@ -1,5 +1,5 @@
 use actix_web::{get, post, HttpResponse, HttpRequest, Result};
-use actix_web::web::{Data, ServiceConfig, Payload, Path};
+use actix_web::web::{Data, ServiceConfig, Payload, Json};
 use async_graphql_actix_web::{Request, Response};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use actix::{Actor, Addr};
@@ -10,27 +10,32 @@ use crate::graphql::{DefaultSchema};
 use crate::actors::state::State;
 use crate::graphql::query::Query;
 use crate::graphql::mutation::Mutation;
-use crate::storage::Storage;
 use crate::actors::file_writer::FileWriter;
-use crate::actors::web_socket::WebSocket;
+use crate::actors::session::Session;
+use crate::storage::get_pool;
+use crate::actors::mutation_handlers::setup_handlers;
+use crate::graphql::loaders::setup_loaders;
+use crate::messages::ws_messages::Connect;
+use uuid::Uuid;
 
 pub fn set_config(config: &mut ServiceConfig) {
-    let chat_server = State::default().start();
-    let file_server = FileWriter.start();
-    let storage = Storage::default();
-    let storage_actor = storage.clone().start();
-    let schema = Schema::build(Query, Mutation, EmptySubscription)
-        .data(storage_actor.clone())
-        .data(chat_server.clone())
-        .data(file_server)
-        .finish();
-    config
-        .data(chat_server)
-        .data(schema)
-        .data(storage_actor)
-        .service(start)
-        .service(graphql)
-        .service(graphiql);
+    if let Ok(pool) = get_pool() {
+        let chat_server = State::default().start();
+        let file_server = FileWriter.start();
+        let builder = Schema::build(Query, Mutation, EmptySubscription);
+        let builder = setup_handlers(builder, pool.clone());
+        let builder = setup_loaders(builder, pool);
+        let schema = builder
+            .data(file_server)
+            .data(chat_server.clone())
+            .finish();
+        config
+            .data(chat_server)
+            .data(schema)
+            .service(start)
+            .service(graphql)
+            .service(graphiql);
+    }
 }
 
 
@@ -49,9 +54,16 @@ async fn graphql(schema: Data<DefaultSchema>, req: Request) -> Response {
     schema.execute(req.into_inner()).await.into()
 }
 
-#[get("/start/{user_id}")]
-async fn start(state: Data<Addr<State>>, req: HttpRequest, payload: Payload, user_id: Path<i32>) -> Result<HttpResponse> {
-    let client = WebSocket::new(state.get_ref().clone(), *user_id);
-    let response = actix_web_actors::ws::start(client, &req, payload)?;
-    Ok(response)
+#[post("/start")]
+async fn start(state: Data<Addr<State>>,
+               req: HttpRequest,
+               payload: Payload,
+               user_info: Json<Connect>,
+) -> Result<HttpResponse> {
+    if let Ok(user) = state.send(user_info.into_inner()).await {
+        let session = Session::new(user, Uuid::new_v4());
+        let response = actix_web_actors::ws::start(session, &req, payload)?;
+        return Ok(response)
+    }
+    HttpResponse::BadGateway().await
 }

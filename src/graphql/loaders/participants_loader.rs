@@ -7,7 +7,7 @@ use crate::graphql::models::user::User;
 use crate::graphql::models::room::RoomId;
 use crate::graphql::loaders::LoadResult;
 
-pub struct ParticipantsLoader(Pool);
+pub struct ParticipantsLoader(pub Pool);
 
 #[async_trait::async_trait]
 impl Loader<RoomId> for ParticipantsLoader {

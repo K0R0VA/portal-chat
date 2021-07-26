@@ -6,7 +6,7 @@ use itertools::join;
 use crate::graphql::loaders::LoadResult;
 use crate::graphql::models::user::{UserId, User};
 
-pub struct UserLoader(Pool);
+pub struct UserLoader(pub Pool);
 
 #[async_trait::async_trait]
 impl Loader<UserId> for UserLoader {
