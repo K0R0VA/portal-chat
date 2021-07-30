@@ -6,11 +6,12 @@ use uuid::Uuid;
 use crate::messages::ws_messages::{RoomMessage, ConnectToRoom, DisconnectFromRoom, RoomIsEmpty};
 use crate::actors::session::{Session};
 use crate::actors::state::State;
+use crate::future_spawn_ext::FutureSpawnExt;
 
 pub struct Room {
     pub id: i32,
     pub participants: HashMap<Uuid, Addr<Session>>,
-    pub state: Addr<State>
+    pub state: Addr<State>,
 }
 
 impl Room {
@@ -18,7 +19,7 @@ impl Room {
         Self {
             id,
             participants: Default::default(),
-            state
+            state,
         }.start()
     }
 }
@@ -27,7 +28,9 @@ impl Actor for Room {
     type Context = Context<Self>;
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
-        let _ = self.state.send(RoomIsEmpty(self.id));
+        self.state
+            .send(RoomIsEmpty(self.id))
+            .spawn(self, ctx);
         Running::Stop
     }
 }
@@ -35,9 +38,11 @@ impl Actor for Room {
 impl Handler<RoomMessage> for Room {
     type Result = ();
 
-    fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: RoomMessage, ctx: &mut Self::Context) -> Self::Result {
         self.participants.iter().for_each(|(_, participant)| {
-            let _ = participant.send(msg.clone());
+            participant
+                .send(msg.clone())
+                .spawn(self, ctx);
         })
     }
 }
@@ -54,7 +59,9 @@ impl Handler<DisconnectFromRoom> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: DisconnectFromRoom, ctx: &mut Self::Context) -> Self::Result {
-        self.participants.remove(&msg.socket_id);
-        self.participants.is_empty().then(|| ctx.stop());
+        self.participants.remove(&msg.session_id);
+        self.participants
+            .is_empty()
+            .then(|| ctx.stop());
     }
 }

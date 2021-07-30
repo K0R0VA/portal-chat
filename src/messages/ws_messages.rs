@@ -57,7 +57,7 @@ pub struct Disconnect {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct DisconnectFromRoom {
-    pub socket_id: Uuid,
+    pub session_id: Uuid,
 }
 
 #[derive(Message, Deserialize, Clone)]
@@ -71,7 +71,7 @@ pub struct RoomMessage {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct PrivateMessageToContact {
-    pub friend_id: i32,
+    pub contact_id: i32,
     pub msg: String,
 }
 
@@ -79,7 +79,7 @@ pub struct PrivateMessageToContact {
 #[rtype(result = "()")]
 pub struct PrivateMessage {
     pub user_id: i32,
-    pub friend_id: i32,
+    pub contact_id: i32,
     pub msg: String,
 }
 

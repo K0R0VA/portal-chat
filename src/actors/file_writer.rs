@@ -1,8 +1,8 @@
-use actix::{Actor, Context, Handler, AsyncContext, WrapFuture};
+use actix::{Actor, Context, Handler, AsyncContext, WrapFuture, ResponseFuture};
 use tokio::io::AsyncWriteExt;
 use std::io::Read;
 
-use crate::messages::fs_messages::Avatar;
+use crate::messages::fs_messages::{UserAvatar, RoomAvatar};
 
 pub struct FileWriter;
 
@@ -10,10 +10,10 @@ impl Actor for FileWriter {
     type Context = Context<Self>;
 }
 
-impl Handler<Avatar> for FileWriter {
+impl Handler<UserAvatar> for FileWriter {
     type Result = ();
 
-    fn handle(&mut self, msg: Avatar, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: UserAvatar, ctx: &mut Self::Context) -> Self::Result {
         use tokio::fs;
         ctx.spawn(async move {
             let result: anyhow::Result<()> = try {
@@ -27,4 +27,25 @@ impl Handler<Avatar> for FileWriter {
         }.into_actor(self));
     }
 }
+
+impl Handler<RoomAvatar> for FileWriter {
+    type Result = ResponseFuture<anyhow::Result<String>>;
+
+    fn handle(&mut self, msg: RoomAvatar, _: &mut Self::Context) -> Self::Result {
+        use tokio::fs;
+        Box::pin(async move {
+            try {
+                fs::create_dir_all(format!("sources/{}/avatar", msg.room_id)).await;
+                let relative_path = msg.to_string();
+                let path = format!("sources/{relative_path}");
+                let mut file = fs::File::create(&path).await?;
+                file.write_all(&msg.content.bytes().map(|byte|
+                    byte.unwrap())
+                    .collect::<Vec<u8>>()).await?;
+                path
+            }
+        })
+    }
+}
+
 

@@ -1,5 +1,5 @@
 use actix_web::{get, post, HttpResponse, HttpRequest, Result};
-use actix_web::web::{Data, ServiceConfig, Payload, Json};
+use actix_web::web::{Data, ServiceConfig, Payload, Path};
 use async_graphql_actix_web::{Request, Response};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use actix::{Actor, Addr};
@@ -54,16 +54,22 @@ async fn graphql(schema: Data<DefaultSchema>, req: Request) -> Response {
     schema.execute(req.into_inner()).await.into()
 }
 
-#[post("/start")]
-async fn start(state: Data<Addr<State>>,
-               req: HttpRequest,
-               payload: Payload,
-               user_info: Json<Connect>,
-) -> Result<HttpResponse> {
-    if let Ok(user) = state.send(user_info.into_inner()).await {
+#[get("/start/{user_id}")]
+async fn start(
+    state: Data<Addr<State>>,
+    req: HttpRequest,
+    payload: Payload,
+    Path(user_id): Path<i32>)
+    -> Result<HttpResponse> {
+    if let Ok(user) = state.send(Connect {
+        user_id,
+        rooms: vec![],
+        friends: vec![]
+    }).await {
+        println!("connecting");
         let session = Session::new(user, Uuid::new_v4());
         let response = actix_web_actors::ws::start(session, &req, payload)?;
-        return Ok(response)
+        return Ok(response);
     }
     HttpResponse::BadGateway().await
 }

@@ -1,6 +1,7 @@
 use crate::actors::room::Room;
 use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty, GetUser, NewRoom};
 use crate::actors::user::User;
+use crate::future_spawn_ext::FutureSpawnExt;
 
 
 use actix::{Actor, Context, Handler, Addr, AsyncContext};
@@ -31,10 +32,10 @@ impl Handler<CreateRoom> for State {
         let room = Room::new(msg.id, ctx.address());
         self.users.get(&msg.creator_id)
             .map(|creator| {
-                let _ = creator.send(NewRoom {
+                creator.send(NewRoom {
                     id: msg.id,
                     room: room.clone(),
-                });
+                }).spawn(self, ctx);
             });
         self.rooms.insert(msg.id, room);
     }

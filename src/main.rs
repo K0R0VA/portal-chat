@@ -1,4 +1,5 @@
 #![feature(try_blocks)]
+#![feature(format_args_capture)]
 #[forbid(unsafe_code, incomplete_features)]
 
 mod actors;
@@ -7,6 +8,8 @@ mod messages;
 mod tls;
 mod graphql;
 mod storage;
+mod proto;
+mod future_spawn_ext;
 
 use actix_web::{App, HttpServer, Result, get, web};
 
