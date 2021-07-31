@@ -28,6 +28,8 @@ async-trait = "0.1.48"
 itertools = "0.10.1"
 prost = "0.8.0"
 bytes = "1.0.1"
+pin-project = "1.0.8"
+
 
 [build-dependencies]
 prost-build = "0.8.0"

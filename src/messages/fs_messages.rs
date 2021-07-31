@@ -15,18 +15,20 @@ impl ToString for UserAvatar {
     }
 }
 
-#[derive(Message)]
-#[rtype(Result = "anyhow::Result<String>")]
 pub struct RoomAvatar {
     pub content: File,
-    pub room_id: i32,
     pub file_name: String,
+    pub room_name: String
+}
+
+impl Message for RoomAvatar {
+    type Result = anyhow::Result<String>;
 }
 
 
 impl ToString for RoomAvatar {
     fn to_string(&self) -> String {
-        format!("rooms/{}/avatar/{}", self.room_id, &self.file_name)
+        format!("rooms/{}/avatar/{}", self.room_name, &self.file_name)
     }
 }
 

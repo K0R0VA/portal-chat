@@ -35,7 +35,7 @@ impl Handler<RoomAvatar> for FileWriter {
         use tokio::fs;
         Box::pin(async move {
             try {
-                fs::create_dir_all(format!("sources/{}/avatar", msg.room_id)).await;
+                let _ = fs::create_dir_all(format!("sources/{}/avatar", msg.room_name)).await;
                 let relative_path = msg.to_string();
                 let path = format!("sources/{relative_path}");
                 let mut file = fs::File::create(&path).await?;

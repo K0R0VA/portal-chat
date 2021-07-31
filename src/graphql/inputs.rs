@@ -10,5 +10,6 @@ pub struct Credentials {
 pub struct RoomInfo {
     pub creator_id: i32,
     pub name: String,
-    pub avatar: Option<Upload>
+    pub avatar: Option<Upload>,
+    pub participants: Option<Vec<i32>>
 }

@@ -1,26 +1,32 @@
 use crate::actors::room::Room;
-use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty, GetUser, NewRoom};
+use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty, GetUser, NewRoom, AddContactToUser, AddContactActor, GetUserChats, UserChats, UserChatsIds};
 use crate::actors::user::User;
-use crate::future_spawn_ext::FutureSpawnExt;
+use crate::extensions::future_spawn_ext::FutureSpawnExt;
 
-
-use actix::{Actor, Context, Handler, Addr, AsyncContext};
+use actix::{Actor, Context, Handler, Addr, AsyncContext, ResponseFuture, WrapFuture, ActorFuture, ContextFutureSpawner};
 use std::collections::{HashMap};
+use crate::actors::state_storage::StateStorage;
+use crate::actors::session::Session;
+use uuid::Uuid;
+use async_graphql::dataloader::DataLoader;
+use deadpool_postgres::Pool;
 
 pub struct State {
     rooms: HashMap<i32, Addr<Room>>,
     users: HashMap<i32, Addr<User>>,
+    storage: DataLoader<StateStorage>,
 }
 
 impl Actor for State {
     type Context = Context<Self>;
 }
 
-impl Default for State {
-    fn default() -> Self {
+impl State {
+    pub fn new(pool: Pool) -> Self {
         Self {
             rooms: Default::default(),
             users: Default::default(),
+            storage: DataLoader::new(StateStorage { pool }),
         }
     }
 }
@@ -42,28 +48,21 @@ impl Handler<CreateRoom> for State {
 }
 
 impl Handler<Connect> for State {
-    type Result = Addr<User>;
+    type Result = Session;
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
-        let state = ctx.address();
-        let user_rooms = msg.rooms.iter().map(|key| {
-            if let Some((key, room)) = self.rooms.get_key_value(key) {
-                return (*key, room.clone());
-            }
-            let room = self.rooms.insert(*key, Room::new(*key, state.clone()));
-            (*key, room.expect(""))
-        }).collect();
-        let user_friends = self.users.iter()
-            .filter(|(id, _)| msg.friends.contains(id))
-            .map(|(key, friend)| (*key, friend.clone()))
-            .collect();
-        User {
-            id: msg.user_id,
-            sessions: HashMap::with_capacity(1),
-            rooms: user_rooms,
-            contacts: user_friends,
-            state,
-        }.start()
+        let user = self.users
+            .entry(msg.user_id)
+            .or_insert(
+                User {
+                    id: msg.user_id,
+                    sessions: Default::default(),
+                    rooms: Default::default(),
+                    contacts: Default::default(),
+                    state: ctx.address(),
+                }.start()
+            );
+        Session::new(user.clone(), Uuid::new_v4())
     }
 }
 
@@ -87,6 +86,55 @@ impl Handler<GetUser> for State {
     type Result = Option<Addr<User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
-        self.users.get(&msg.user_id).map(|user| user.clone())
+        self.users
+            .get(&msg.user_id)
+            .map(|user| user.clone())
+    }
+}
+
+impl Handler<AddContactToUser> for State {
+    type Result = ();
+
+    fn handle(&mut self, msg: AddContactToUser, ctx: &mut Self::Context) -> Self::Result {
+        self.users.get(&msg.user_id).map(|user| {
+            user.send(AddContactActor {
+                user_id: 0
+            }).spawn(self, ctx);
+        });
+    }
+}
+
+impl Handler<GetUserChats> for State {
+    type Result = ();
+
+    fn handle(&mut self, msg: GetUserChats, ctx: &mut Self::Context) -> Self::Result {
+        async move {
+            self.storage.load_one(msg.user_id).await
+        }
+            .into_actor(self)
+            .then(|res, actor, ctx| {
+                if let Ok(Some(UserChatsIds {contacts, rooms})) = res {
+                    let contacts = contacts
+                        .iter()
+                        .filter_map(|id| self.users.get_key_value(id).clone())
+                        .collect();
+                    let rooms = rooms
+                        .iter()
+                        .map(|key| {
+                            self.rooms
+                                .entry(*key)
+                                .or_insert(Room {
+                                        id: *key,
+                                        participants: Default::default(),
+                                        state: ctx.address()
+                                    }.start()
+                                )
+                        })
+                        .collect();
+                    msg.user_address.send(UserChats { contacts, rooms })
+                }
+                actix::fut::ready(())
+            })
+            .wait(ctx);
     }
 }

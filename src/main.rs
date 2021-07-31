@@ -1,5 +1,7 @@
 #![feature(try_blocks)]
 #![feature(format_args_capture)]
+#![feature(generic_associated_types)]
+#![feature(associated_type_bounds)]
 #[forbid(unsafe_code, incomplete_features)]
 
 mod actors;
@@ -9,7 +11,7 @@ mod tls;
 mod graphql;
 mod storage;
 mod proto;
-mod future_spawn_ext;
+mod extensions;
 
 use actix_web::{App, HttpServer, Result, get, web};
 

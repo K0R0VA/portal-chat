@@ -1,10 +1,11 @@
-use actix::{Message, Addr};
+use actix::{Message, Addr, Recipient};
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::actors::session::{Session};
 use crate::actors::user::User;
 use crate::actors::room::Room;
+use std::collections::HashMap;
 
 
 #[derive(Message)]
@@ -33,13 +34,38 @@ pub struct CloseSession(pub Uuid);
 #[derive(Deserialize)]
 pub struct Connect {
     pub user_id: i32,
-    pub rooms: Vec<i32>,
-    pub friends: Vec<i32>
 }
 
 impl Message for Connect {
-    type Result = Addr<User>;
+    type Result = Session;
 }
+
+#[derive(Message)]
+#[rtype(result = "anyhow::Result<UserChats>")]
+pub struct GetUserChatsIds {
+    pub user_id: i32
+}
+
+#[derive(Clone)]
+pub struct UserChatsIds {
+    pub contacts: Vec<i32>,
+    pub rooms: Vec<i32>
+}
+
+#[derive(Message)]
+pub struct GetUserChats {
+    pub user_address: Recipient<UserChats>,
+    pub user_id: i32
+}
+
+
+#[derive(Clone, Message)]
+#[rtype(result = "()")]
+pub struct UserChats {
+    pub contacts: HashMap<i32, Addr<User>>,
+    pub rooms: HashMap<i32, Addr<Room>>
+}
+
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -83,10 +109,17 @@ pub struct PrivateMessage {
     pub msg: String,
 }
 
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct AddContactToUser {
+    pub user_id: i32,
+    pub contact_id: i32
+}
+
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct AddContact {
+pub struct AddContactActor {
     pub user_id: i32
 }
 
@@ -109,5 +142,4 @@ pub struct NewRoom {
     pub id: i32,
     pub room: Addr<Room>
 }
-
 

@@ -1,16 +1,18 @@
 use std::time::{Duration, Instant};
-use actix::{Actor, Addr, WrapFuture, ContextFutureSpawner, StreamHandler, Handler, AsyncContext, ActorContext, Running, ActorFuture};
+use actix::{Actor, Addr, WrapFuture, ContextFutureSpawner, StreamHandler, Handler, AsyncContext, ActorContext, Running, ActorFuture, Context};
 use actix_web_actors::ws::{WebsocketContext, Message, ProtocolError};
 use uuid::Uuid;
 
 
 use crate::actors::user::User;
-use crate::messages::ws_messages::{NewSession, CloseSession, RoomMessage, PrivateMessage, PrivateMessageToContact};
+use crate::messages::ws_messages::{NewSession, CloseSession, RoomMessage, PrivateMessage, PrivateMessageToContact, Connect};
 use actix_web::client::WsProtocolError;
 
 use crate::proto::{deserialize_client_message, message::MessageType, serialize_server_message};
 use crate::proto::message::ServerMessage;
-use crate::future_spawn_ext::FutureSpawnExt;
+use crate::extensions::future_spawn_ext::FutureSpawnExt;
+use actix::dev::{MessageResponse, ResponseChannel};
+use crate::actors::state::State;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -20,6 +22,14 @@ pub struct Session {
     id: Uuid,
     user: Addr<User>,
     hb: Instant,
+}
+
+impl MessageResponse<State, Connect> for Session {
+    fn handle<R: ResponseChannel<Connect>>(self, ctx: &mut Context<State>, tx: Option<R>) {
+        if let Some(sender) = tx {
+            sender.send(self)
+        }
+    }
 }
 
 impl Session {

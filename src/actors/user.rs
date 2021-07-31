@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use uuid::Uuid;
-use actix::{Addr, Actor, Context, Handler, ActorContext, Running, WrapFuture, ActorFuture, ContextFutureSpawner};
+use actix::{Addr, Actor, Context, Handler, ActorContext, Running, WrapFuture, ActorFuture, ContextFutureSpawner, AsyncContext};
 
 use crate::actors::session::Session;
 use crate::actors::room::Room;
 use crate::actors::state::State;
-use crate::messages::ws_messages::{NewSession, ConnectToRoom, CloseSession, DisconnectFromRoom, Disconnect, PrivateMessage, PrivateMessageToContact, AddContact, GetUser, NewRoom, RoomMessage};
-use crate::future_spawn_ext::{FutureSpawnExt};
+use crate::messages::ws_messages::{NewSession, ConnectToRoom, CloseSession, DisconnectFromRoom, Disconnect, PrivateMessage, PrivateMessageToContact, GetUser, NewRoom, RoomMessage, AddContactActor, GetUserChats, UserChats};
+use crate::extensions::future_spawn_ext::{FutureSpawnExt};
 
 pub struct User {
     pub id: i32,
@@ -19,6 +19,13 @@ pub struct User {
 
 impl Actor for User {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        self.state.send(GetUserChats {
+            user_address: ctx.address().recipient(),
+            user_id: self.id
+        }).spawn(self, ctx);
+    }
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
         self.state.send(Disconnect { id: self.id }).spawn(self, ctx);
@@ -81,10 +88,10 @@ impl Handler<PrivateMessageToContact> for User {
     }
 }
 
-impl Handler<AddContact> for User {
+impl Handler<AddContactActor> for User {
     type Result = ();
 
-    fn handle(&mut self, msg: AddContact, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: AddContactActor, ctx: &mut Self::Context) -> Self::Result {
         let contact_id = msg.user_id;
         self.state.send(GetUser { user_id: contact_id })
             .into_actor(self)
@@ -124,6 +131,15 @@ impl Handler<RoomMessage> for User {
             room.send(msg).spawn(self, ctx);
             Some(())
         });
+    }
+}
+
+impl Handler<UserChats> for User {
+    type Result = ();
+
+    fn handle(&mut self, msg: UserChats, ctx: &mut Self::Context) -> Self::Result {
+        self.rooms = msg.rooms;
+        self.contacts = msg.contacts;
     }
 }
 

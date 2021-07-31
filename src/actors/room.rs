@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::messages::ws_messages::{RoomMessage, ConnectToRoom, DisconnectFromRoom, RoomIsEmpty};
 use crate::actors::session::{Session};
 use crate::actors::state::State;
-use crate::future_spawn_ext::FutureSpawnExt;
+use crate::extensions::future_spawn_ext::FutureSpawnExt;
 
 pub struct Room {
     pub id: i32,

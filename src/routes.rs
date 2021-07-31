@@ -11,16 +11,14 @@ use crate::actors::state::State;
 use crate::graphql::query::Query;
 use crate::graphql::mutation::Mutation;
 use crate::actors::file_writer::FileWriter;
-use crate::actors::session::Session;
 use crate::storage::get_pool;
 use crate::actors::mutation_handlers::setup_handlers;
 use crate::graphql::loaders::setup_loaders;
 use crate::messages::ws_messages::Connect;
-use uuid::Uuid;
 
 pub fn set_config(config: &mut ServiceConfig) {
     if let Ok(pool) = get_pool() {
-        let chat_server = State::default().start();
+        let chat_server = State::new(pool.clone()).start();
         let file_server = FileWriter.start();
         let builder = Schema::build(Query, Mutation, EmptySubscription);
         let builder = setup_handlers(builder, pool.clone());
@@ -43,9 +41,7 @@ pub fn set_config(config: &mut ServiceConfig) {
 async fn graphiql() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(playground_source(GraphQLPlaygroundConfig::new("/graphql")
-            .subscription_endpoint("/start")
-        ))
+        .body(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
     )
 }
 
@@ -61,15 +57,8 @@ async fn start(
     payload: Payload,
     Path(user_id): Path<i32>)
     -> Result<HttpResponse> {
-    if let Ok(user) = state.send(Connect {
-        user_id,
-        rooms: vec![],
-        friends: vec![]
-    }).await {
-        println!("connecting");
-        let session = Session::new(user, Uuid::new_v4());
-        let response = actix_web_actors::ws::start(session, &req, payload)?;
-        return Ok(response);
-    }
+    if let Ok(session) = state.send(Connect { user_id }).await {
+        return actix_web_actors::ws::start(session, &req, payload)
+    };
     HttpResponse::BadGateway().await
 }

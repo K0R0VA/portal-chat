@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::graphql::models::room::Room;
 use crate::graphql::loaders::rooms_loader::RoomsLoader;
+use chrono::NaiveDate;
 
 
 #[derive(Clone, Eq, PartialEq, Hash)]
@@ -25,6 +26,7 @@ pub struct User {
     pub id: i32,
     pub name: Option<String>,
     pub avatar: Option<String>,
+    pub last_session: Option<NaiveDate>,
 }
 
 #[Object]
