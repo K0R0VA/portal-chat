@@ -2,19 +2,21 @@ use crate::actors::room::Room;
 use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty, GetUser, NewRoom, AddContactToUser, AddContactActor, GetUserChats, UserChats, UserChatsIds};
 use crate::actors::user::User;
 use crate::extensions::future_spawn_ext::FutureSpawnExt;
+use crate::actors::state_storage::StateStorage;
+use crate::actors::session::Session;
 
 use actix::{Actor, Context, Handler, Addr, AsyncContext, ResponseFuture, WrapFuture, ActorFuture, ContextFutureSpawner};
 use std::collections::{HashMap};
-use crate::actors::state_storage::StateStorage;
-use crate::actors::session::Session;
+use std::sync::Arc;
 use uuid::Uuid;
 use async_graphql::dataloader::DataLoader;
 use deadpool_postgres::Pool;
+use async_graphql::futures_util::FutureExt;
 
 pub struct State {
     rooms: HashMap<i32, Addr<Room>>,
     users: HashMap<i32, Addr<User>>,
-    storage: DataLoader<StateStorage>,
+    storage: Arc<DataLoader<StateStorage>>,
 }
 
 impl Actor for State {
@@ -26,7 +28,7 @@ impl State {
         Self {
             rooms: Default::default(),
             users: Default::default(),
-            storage: DataLoader::new(StateStorage { pool }),
+            storage: Arc::new(DataLoader::new(StateStorage { pool })),
         }
     }
 }
@@ -103,38 +105,43 @@ impl Handler<AddContactToUser> for State {
         });
     }
 }
-
 impl Handler<GetUserChats> for State {
     type Result = ();
 
     fn handle(&mut self, msg: GetUserChats, ctx: &mut Self::Context) -> Self::Result {
-        async move {
-            self.storage.load_one(msg.user_id).await
-        }
-            .into_actor(self)
-            .then(|res, actor, ctx| {
-                if let Ok(Some(UserChatsIds {contacts, rooms})) = res {
-                    let contacts = contacts
-                        .iter()
-                        .filter_map(|id| self.users.get_key_value(id).clone())
-                        .collect();
-                    let rooms = rooms
-                        .iter()
-                        .map(|key| {
-                            self.rooms
-                                .entry(*key)
-                                .or_insert(Room {
-                                        id: *key,
-                                        participants: Default::default(),
-                                        state: ctx.address()
-                                    }.start()
-                                )
-                        })
-                        .collect();
-                    msg.user_address.send(UserChats { contacts, rooms })
-                }
-                actix::fut::ready(())
-            })
-            .wait(ctx);
+        // let storage= Arc::clone(&self.storage);
+        // Box::pin(async move {
+        //     storage
+        //         .load_one(msg.user_id).await
+        // })
+        //     .into_actor(self)
+        //     .then(|res, actor, ctx| {
+        //         if let Ok(Some(UserChatsIds { contacts, rooms })) = res {
+        //             let contacts = contacts
+        //                 .iter()
+        //                 .filter_map(|id| self.users
+        //                     .get_key_value(id)
+        //                     .map(|(key, contact)| (*key, contact.clone())))
+        //                 .collect();
+        //             let rooms = rooms
+        //                 .iter()
+        //                 .map(|key| {
+        //                     (
+        //                         *key,
+        //                         self.rooms
+        //                             .entry(*key)
+        //                             .or_insert(Room {
+        //                                 id: *key,
+        //                                 participants: Default::default(),
+        //                                 state: ctx.address(),
+        //                             }.start()).clone()
+        //                     )
+        //                 })
+        //                 .collect();
+        //             msg.user_address.send(UserChats { contacts, rooms }).spawn(actor, ctx);
+        //         }
+        //         actix::fut::ready(())
+        //     })
+        //     .wait(ctx);
     }
 }

@@ -53,6 +53,7 @@ pub struct UserChatsIds {
 }
 
 #[derive(Message)]
+#[rtype(result = "()")]
 pub struct GetUserChats {
     pub user_address: Recipient<UserChats>,
     pub user_id: i32
