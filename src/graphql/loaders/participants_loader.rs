@@ -18,18 +18,18 @@ impl Loader<RoomId> for ParticipantsLoader {
         let result: LoadResult<RoomId, Self::Value> = try {
             let pool = &self.0;
             let client: Client = pool.get().await?;
-            let fields = keys[0].1.as_str();
             let stmt = client.prepare(&*format!(
                 r#"select participant.room_id, json_agg(
 	                json_build_object(
-		                'id', public.user.id, {}
+		                'id', public.user.id,
+		                'name', public.user.name,
+		                'avatar', public.user.avatar,
 	                )
                 ) as "participants"
                 from public.user
 	            right join participant on  participant.participant_id = public.user.id
 	                where room_id in ({})
 	            group by participant.room_id;"#,
-                fields,
                 join(keys
                          .into_iter()
                          .map::<i32, _>(|room| room.0),
@@ -43,7 +43,7 @@ impl Loader<RoomId> for ParticipantsLoader {
                     let json = row.get::<usize, serde_json::Value>(1);
                     let participants: Vec<User> = serde_json::from_value(json).expect("Bad sql query");
                     (
-                        RoomId(room_id, fields.to_string()),
+                        RoomId(room_id),
                         participants
                     )
                 })

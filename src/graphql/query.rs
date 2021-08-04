@@ -20,7 +20,7 @@ impl Query {
             .map(|field| field.name())
             .join(",");
         let loader = ctx.data_unchecked::<DataLoader<UserLoader>>();
-        let user = loader.load_one(UserId(id, fields)).await?;
+        let user = loader.load_one(UserId(id)).await?;
         user.ok_or_else(|| "Not found".into())
     }
 }

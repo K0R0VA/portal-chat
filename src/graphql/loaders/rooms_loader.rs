@@ -19,11 +19,15 @@ impl Loader<ParticipantId> for RoomsLoader {
         let result: LoadResult<ParticipantId, Self::Value> = try {
             let pool = &self.0;
             let client: Client = pool.get().await?;
-            let fields = keys[0].1.as_str();
             let stmt = client.prepare(&*format!(
-                r#"select room_id, json_agg(json_build_object({})) as "room_messages"
-                    from room_message where room_id in ({}) group by room_id"#,
-                fields,
+                r#"select p.user_id, json_agg( json_build_object(
+                'id', id,
+                'name', name,
+                'avatar', avatar
+                )) as "rooms"
+                     from room inner join participant p on room.id = p.room_id
+                     where p.user_id in ({})
+                     group by p.user_id"#,
                 join(keys
                          .into_iter()
                          .map::<i32, _>(|participant| participant.0),
@@ -37,7 +41,7 @@ impl Loader<ParticipantId> for RoomsLoader {
                     let json = row.get::<usize, serde_json::Value>(1);
                     let rooms: Vec<Room> = serde_json::from_value(json).expect("Bad sql query");
                     (
-                        ParticipantId(participant_id, fields.to_string()),
+                        ParticipantId(participant_id),
                         rooms
                     )
                 })

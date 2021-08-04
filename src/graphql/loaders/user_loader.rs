@@ -17,11 +17,9 @@ impl Loader<UserId> for UserLoader {
         let result: LoadResult<UserId, Self::Value> = try {
             let pool = &self.0;
             let client: Client = pool.get().await?;
-            let fields = keys[0].1.as_str();
             let stmt = client.prepare(
                 &*format!(
-                    r#"select id, {} from public.user where id in ({})"#,
-                    fields,
+                    r#"select id, name, avatar from public.user where id in ({})"#,
                     join(keys
                              .into_iter()
                              .map::<i32, _>(|user_id| user_id.0),
@@ -32,7 +30,7 @@ impl Loader<UserId> for UserLoader {
             let users = result.iter().map(|row| {
                 let user: User = serde_postgres::from_row(row).unwrap();
                 (
-                    UserId(user.id, fields.to_string()),
+                    UserId(user.id),
                     user
                 )
             }).collect();

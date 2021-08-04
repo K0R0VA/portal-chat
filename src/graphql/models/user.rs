@@ -9,10 +9,10 @@ use chrono::NaiveDate;
 
 
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct UserId(pub i32, pub String);
+pub struct UserId(pub i32);
 
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct ParticipantId(pub i32, pub String);
+pub struct ParticipantId(pub i32);
 
 
 
@@ -21,7 +21,7 @@ pub struct ParticipantId(pub i32, pub String);
 
 
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct User {
     pub id: i32,
     pub name: Option<String>,
@@ -43,19 +43,10 @@ impl User {
         Option::as_deref(&self.avatar)
     }
 
-    async fn rooms(&self, ctx: &Context<'_>) -> Result<Vec<Room>> {
-        let fields = ctx
-            .field()
-            .selection_set()
-            .filter(|field| match field.name() {
-                "participants" | "messages" | "id" => false,
-                _ => true
-            } )
-            .map(|field| ["'", field.name() ,"', room.", field.name()].concat())
-            .join(",");
+    async fn rooms(&self, ctx: &Context<'_>) -> Result<Option<Vec<Room>>> {
         let loader = ctx.data_unchecked::<DataLoader<RoomsLoader>>();
-        let rooms = loader.load_one(ParticipantId(self.id, fields)).await.unwrap();
-        rooms.ok_or_else(|| "Not found any rooms".into())
+        let rooms = loader.load_one(ParticipantId(self.id)).await?;
+        Ok(rooms)
     }
     async fn friends(&self, _ctx: &Context<'_>) -> Result<Vec<User>> {
         Ok(vec![])

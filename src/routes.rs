@@ -17,7 +17,7 @@ use crate::graphql::loaders::setup_loaders;
 use crate::messages::ws_messages::Connect;
 
 pub fn set_config(config: &mut ServiceConfig) {
-    if let Ok(pool) = get_pool() {
+    if let Ok(pool) = get_pool().map_err(|e| print!("{}", e)) {
         let chat_server = State::new(pool.clone()).start();
         let file_server = FileWriter.start();
         let builder = Schema::build(Query, Mutation, EmptySubscription);

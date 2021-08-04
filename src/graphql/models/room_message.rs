@@ -26,19 +26,10 @@ impl RoomMessage {
         Option::as_deref(&self.content)
     }
     async fn sender(&self, ctx: &Context<'_>) -> Result<User> {
-        let fields = ctx
-            .field()
-            .selection_set()
-            .filter(|field| match field.name() {
-                "rooms" | "friends" | "id" => false,
-                _ => true
-            })
-            .map(|field| field.name())
-            .join(",");
         let loader = ctx.data_unchecked::<DataLoader<UserLoader>>();
         let sender_id = self.sender_id;
         let user = loader.load_one(
-            UserId(sender_id, fields))
+            UserId(sender_id))
             .await
             .unwrap();
         user.ok_or_else(|| "Not found".into())

@@ -24,7 +24,7 @@ impl Handler<SignUp> for SignUpHandler {
                 let client: Client = pool.get().await?;
                 let this_moment = Utc::now().naive_utc();
                 let stmt = client
-                    .prepare(r#"insert into public.user (name, password, last_sesstion) values ($1, $2, $3) RETURNING *"#)
+                    .prepare(r#"insert into public.user (name, password, last_session) values ($1, $2, $3) RETURNING id, name"#)
                     .await?;
                 let result = client
                     .query_one(&stmt, &[&msg.name, &msg.password, &this_moment])

@@ -23,7 +23,8 @@ impl Handler<SignIn> for SignInHandler {
                 let client: Client = pool.get().await?;
                 let this_moment = Utc::now().naive_utc();
                 let stmt = client
-                    .prepare(r#"update public.user set last_session = $1 where name = $2 and password = $3 return *"#)
+                    .prepare(r#"update public.user set last_session = $1 where name = $2 and password = $3
+                                returning public.user.id,  public.user.name,  public.user.avatar"#)
                     .await?;
                 let result = client
                     .query_one(&stmt, &[&this_moment, &msg.name, &msg.password])
