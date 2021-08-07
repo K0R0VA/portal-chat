@@ -7,7 +7,7 @@ use async_graphql::{Schema, EmptySubscription};
 
 
 use crate::graphql::{DefaultSchema};
-use crate::actors::state::State;
+use crate::actors::state::ChatState;
 use crate::graphql::query::Query;
 use crate::graphql::mutation::Mutation;
 use crate::actors::file_writer::FileWriter;
@@ -18,7 +18,7 @@ use crate::messages::ws_messages::Connect;
 
 pub fn set_config(config: &mut ServiceConfig) {
     if let Ok(pool) = get_pool().map_err(|e| print!("{}", e)) {
-        let chat_server = State::new(pool.clone()).start();
+        let chat_server = ChatState::new(pool.clone()).start();
         let file_server = FileWriter.start();
         let builder = Schema::build(Query, Mutation, EmptySubscription);
         let builder = setup_handlers(builder, pool.clone());
@@ -52,7 +52,7 @@ async fn graphql(schema: Data<DefaultSchema>, req: Request) -> Response {
 
 #[get("/start/{user_id}")]
 async fn start(
-    state: Data<Addr<State>>,
+    state: Data<Addr<ChatState>>,
     req: HttpRequest,
     payload: Payload,
     Path(user_id): Path<i32>)

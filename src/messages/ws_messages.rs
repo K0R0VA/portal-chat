@@ -2,7 +2,7 @@ use actix::{Message, Addr, Recipient};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::actors::session::{Session};
+use crate::actors::session::{CommonSession};
 use crate::actors::user::User;
 use crate::actors::room::Room;
 use std::collections::HashMap;
@@ -24,7 +24,7 @@ pub struct WsMessage(pub String);
 #[rtype(result = "()")]
 pub struct NewSession {
     pub session_id: Uuid,
-    pub session: Addr<Session>
+    pub session: Addr<CommonSession>
 }
 
 #[derive(Message)]
@@ -37,7 +37,7 @@ pub struct Connect {
 }
 
 impl Message for Connect {
-    type Result = Session;
+    type Result = CommonSession;
 }
 
 #[derive(Message)]
@@ -71,7 +71,7 @@ pub struct UserChats {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ConnectToRoom {
-    pub session: Addr<Session>,
+    pub session: Addr<CommonSession>,
     pub session_id: Uuid,
 }
 

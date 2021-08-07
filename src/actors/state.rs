@@ -3,7 +3,7 @@ use crate::messages::ws_messages::{CreateRoom, Connect, Disconnect, RoomIsEmpty,
 use crate::actors::user::User;
 use crate::extensions::future_spawn_ext::FutureSpawnExt;
 use crate::actors::state_storage::StateStorage;
-use crate::actors::session::Session;
+use crate::actors::session::CommonSession;
 
 use actix::{Actor, Context, Handler, Addr, AsyncContext, ResponseFuture, WrapFuture, ActorFuture, ContextFutureSpawner};
 use std::collections::{HashMap};
@@ -13,17 +13,17 @@ use async_graphql::dataloader::DataLoader;
 use deadpool_postgres::Pool;
 use async_graphql::futures_util::FutureExt;
 
-pub struct State {
+pub struct ChatState {
     rooms: HashMap<i32, Addr<Room>>,
     users: HashMap<i32, Addr<User>>,
     storage: Arc<DataLoader<StateStorage>>,
 }
 
-impl Actor for State {
+impl Actor for ChatState {
     type Context = Context<Self>;
 }
 
-impl State {
+impl ChatState {
     pub fn new(pool: Pool) -> Self {
         Self {
             rooms: Default::default(),
@@ -33,7 +33,7 @@ impl State {
     }
 }
 
-impl Handler<CreateRoom> for State {
+impl Handler<CreateRoom> for ChatState {
     type Result = ();
 
     fn handle(&mut self, msg: CreateRoom, ctx: &mut Self::Context) -> Self::Result {
@@ -49,8 +49,8 @@ impl Handler<CreateRoom> for State {
     }
 }
 
-impl Handler<Connect> for State {
-    type Result = Session;
+impl Handler<Connect> for ChatState {
+    type Result = CommonSession;
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
         let user = self.users
@@ -64,11 +64,11 @@ impl Handler<Connect> for State {
                     state: ctx.address(),
                 }.start()
             );
-        Session::new(user.clone(), Uuid::new_v4())
+        CommonSession::new(user.clone(), Uuid::new_v4())
     }
 }
 
-impl Handler<Disconnect> for State {
+impl Handler<Disconnect> for ChatState {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
@@ -76,7 +76,7 @@ impl Handler<Disconnect> for State {
     }
 }
 
-impl Handler<RoomIsEmpty> for State {
+impl Handler<RoomIsEmpty> for ChatState {
     type Result = ();
 
     fn handle(&mut self, msg: RoomIsEmpty, _: &mut Self::Context) -> Self::Result {
@@ -84,7 +84,7 @@ impl Handler<RoomIsEmpty> for State {
     }
 }
 
-impl Handler<GetUser> for State {
+impl Handler<GetUser> for ChatState {
     type Result = Option<Addr<User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
@@ -94,7 +94,7 @@ impl Handler<GetUser> for State {
     }
 }
 
-impl Handler<AddContactToUser> for State {
+impl Handler<AddContactToUser> for ChatState {
     type Result = ();
 
     fn handle(&mut self, msg: AddContactToUser, ctx: &mut Self::Context) -> Self::Result {
@@ -105,43 +105,43 @@ impl Handler<AddContactToUser> for State {
         });
     }
 }
-impl Handler<GetUserChats> for State {
+impl Handler<GetUserChats> for ChatState {
     type Result = ();
 
     fn handle(&mut self, msg: GetUserChats, ctx: &mut Self::Context) -> Self::Result {
-        // let storage= Arc::clone(&self.storage);
-        // Box::pin(async move {
-        //     storage
-        //         .load_one(msg.user_id).await
-        // })
-        //     .into_actor(self)
-        //     .then(|res, actor, ctx| {
-        //         if let Ok(Some(UserChatsIds { contacts, rooms })) = res {
-        //             let contacts = contacts
-        //                 .iter()
-        //                 .filter_map(|id| self.users
-        //                     .get_key_value(id)
-        //                     .map(|(key, contact)| (*key, contact.clone())))
-        //                 .collect();
-        //             let rooms = rooms
-        //                 .iter()
-        //                 .map(|key| {
-        //                     (
-        //                         *key,
-        //                         self.rooms
-        //                             .entry(*key)
-        //                             .or_insert(Room {
-        //                                 id: *key,
-        //                                 participants: Default::default(),
-        //                                 state: ctx.address(),
-        //                             }.start()).clone()
-        //                     )
-        //                 })
-        //                 .collect();
-        //             msg.user_address.send(UserChats { contacts, rooms }).spawn(actor, ctx);
-        //         }
-        //         actix::fut::ready(())
-        //     })
-        //     .wait(ctx);
+        let storage= Arc::clone(&self.storage);
+        Box::pin(async move {
+            storage
+                .load_one(msg.user_id).await
+        })
+            .into_actor(self)
+            .then(|res, actor, ctx| {
+                if let Ok(Some(UserChatsIds { contacts, rooms })) = res {
+                    let contacts = contacts
+                        .iter()
+                        .filter_map(|id| self.users
+                            .get_key_value(id)
+                            .map(|(key, contact)| (*key, contact.clone())))
+                        .collect();
+                    let rooms = rooms
+                        .iter()
+                        .map(|key| {
+                            (
+                                *key,
+                                self.rooms
+                                    .entry(*key)
+                                    .or_insert(Room {
+                                        id: *key,
+                                        participants: Default::default(),
+                                        state: ctx.address(),
+                                    }.start()).clone()
+                            )
+                        })
+                        .collect();
+                    msg.user_address.send(UserChats { contacts, rooms }).spawn(actor, ctx);
+                }
+                actix::fut::ready(())
+            })
+            .wait(ctx);
     }
 }

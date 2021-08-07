@@ -4,18 +4,18 @@ use uuid::Uuid;
 
 
 use crate::messages::ws_messages::{RoomMessage, ConnectToRoom, DisconnectFromRoom, RoomIsEmpty};
-use crate::actors::session::{Session};
-use crate::actors::state::State;
+use crate::actors::session::{CommonSession};
+use crate::actors::state::ChatState;
 use crate::extensions::future_spawn_ext::FutureSpawnExt;
 
 pub struct Room {
     pub id: i32,
-    pub participants: HashMap<Uuid, Addr<Session>>,
-    pub state: Addr<State>,
+    pub participants: HashMap<Uuid, Addr<CommonSession>>,
+    pub state: Addr<ChatState>,
 }
 
 impl Room {
-    pub fn new(id: i32, state: Addr<State>) -> Addr<Self> {
+    pub fn new(id: i32, state: Addr<ChatState>) -> Addr<Self> {
         Self {
             id,
             participants: Default::default(),

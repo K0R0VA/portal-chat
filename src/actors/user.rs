@@ -2,18 +2,18 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use actix::{Addr, Actor, Context, Handler, ActorContext, Running, WrapFuture, ActorFuture, ContextFutureSpawner, AsyncContext};
 
-use crate::actors::session::Session;
+use crate::actors::session::CommonSession;
 use crate::actors::room::Room;
-use crate::actors::state::State;
+use crate::actors::state::ChatState;
 use crate::messages::ws_messages::{NewSession, ConnectToRoom, CloseSession, DisconnectFromRoom, Disconnect, PrivateMessage, PrivateMessageToContact, GetUser, NewRoom, RoomMessage, AddContactActor, GetUserChats, UserChats};
 use crate::extensions::future_spawn_ext::{FutureSpawnExt};
 
 pub struct User {
     pub id: i32,
-    pub sessions: HashMap<Uuid, Addr<Session>>,
+    pub sessions: HashMap<Uuid, Addr<CommonSession>>,
     pub rooms: HashMap<i32, Addr<Room>>,
     pub contacts: HashMap<i32, Addr<User>>,
-    pub state: Addr<State>,
+    pub state: Addr<ChatState>,
 }
 
 

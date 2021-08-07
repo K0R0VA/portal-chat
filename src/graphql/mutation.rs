@@ -12,7 +12,7 @@ use crate::actors::mutation_handlers::sign_in_handler::SignInHandler;
 use crate::actors::mutation_handlers::logout_handler::LogoutHandler;
 use crate::graphql::models::room::Room;
 use crate::actors::mutation_handlers::room_creator_handler::RoomCreatorHandler;
-use crate::actors::state::State;
+use crate::actors::state::ChatState;
 use crate::actors::mutation_handlers::add_contact_handler::AddContactHandler;
 
 pub struct Mutation;
@@ -63,7 +63,7 @@ impl Mutation {
             avatar: path,
             participants: room_info.participants,
         }).await??;
-        let state = ctx.data_unchecked::<Addr<State>>();
+        let state = ctx.data_unchecked::<Addr<ChatState>>();
         state.send(CreateRoomSession {
             id: room.id,
             creator_id: room_info.creator_id
@@ -77,7 +77,7 @@ impl Mutation {
             user_id,
             contact_id
         }).await??;
-        let state = ctx.data_unchecked::<Addr<State>>();
+        let state = ctx.data_unchecked::<Addr<ChatState>>();
         state.send(AddContactToUser {
             user_id,
             contact_id

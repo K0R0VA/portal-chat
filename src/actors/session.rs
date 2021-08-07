@@ -12,51 +12,49 @@ use crate::proto::{deserialize_client_message, message::MessageType, serialize_s
 use crate::proto::message::ServerMessage;
 use crate::extensions::future_spawn_ext::FutureSpawnExt;
 use actix::dev::{MessageResponse, ResponseChannel};
-use crate::actors::state::State;
+use crate::actors::state::ChatState;
+use crate::actors::Session;
 
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
-
-
-pub struct Session {
+pub struct CommonSession {
     id: Uuid,
     user: Addr<User>,
     hb: Instant,
 }
 
-impl MessageResponse<State, Connect> for Session {
-    fn handle<R: ResponseChannel<Connect>>(self, ctx: &mut Context<State>, tx: Option<R>) {
+impl MessageResponse<ChatState, Connect> for CommonSession {
+    fn handle<R: ResponseChannel<Connect>>(self, ctx: &mut Context<ChatState>, tx: Option<R>) {
         if let Some(sender) = tx {
             sender.send(self)
         }
     }
 }
 
-impl Session {
+
+impl CommonSession {
     pub fn new(user: Addr<User>, id: Uuid) -> Self {
-        Session {
+        CommonSession {
             id,
             hb: Instant::now(),
             user,
         }
     }
-    fn heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
-        ctx.run_interval(HEARTBEAT_INTERVAL, |actor, ctx| {
-            if Instant::now().duration_since(actor.hb) > CLIENT_TIMEOUT {
-                actor.user.do_send(CloseSession(actor.id));
-                ctx.stop();
-                return;
-            }
-            ctx.ping(b"PING");
-        });
+}
+
+impl Session for CommonSession {
+
+    const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+    const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+
+    fn get_heartbeat(&self) -> Instant {
+        self.hb
     }
 }
 
-impl Actor for Session {
+impl Actor for CommonSession {
     type Context = WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut WebsocketContext<Self>) {
-        self.heartbeat(ctx);
+        self.init_heartbeat(ctx);
         let session = ctx.address();
         self.user.send(NewSession {
             session_id: self.id,
@@ -77,7 +75,7 @@ impl Actor for Session {
     }
 }
 
-impl StreamHandler<Result<Message, WsProtocolError>> for Session {
+impl StreamHandler<Result<Message, WsProtocolError>> for CommonSession {
     fn handle(&mut self, msg: Result<Message, ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(Message::Binary(ref bytes)) => {
@@ -115,7 +113,7 @@ impl StreamHandler<Result<Message, WsProtocolError>> for Session {
     }
 }
 
-impl Handler<RoomMessage> for Session {
+impl Handler<RoomMessage> for CommonSession {
     type Result = ();
 
     fn handle(&mut self, msg: RoomMessage, ctx: &mut Self::Context) -> Self::Result {
@@ -129,7 +127,7 @@ impl Handler<RoomMessage> for Session {
     }
 }
 
-impl Handler<PrivateMessage> for Session {
+impl Handler<PrivateMessage> for CommonSession {
     type Result = ();
 
     fn handle(&mut self, msg: PrivateMessage, ctx: &mut Self::Context) -> Self::Result {
