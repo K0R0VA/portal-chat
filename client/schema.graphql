@@ -1,0 +1,56 @@
+# This file was generated based on ".graphqlconfig". Do not edit manually.
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Mutation {
+  addContact(contactId: Int!, userId: Int!): User!
+  createRoom(roomInfo: RoomInfo!): Room!
+  loadAvatar(file: Upload!, userId: Int!): String!
+  logout(userId: Int!): Int!
+  signId(credentials: Credentials!): User!
+  signUp(credentials: Credentials!): User!
+}
+
+type Query {
+  user(id: Int!): User!
+}
+
+type Room {
+  avatar: String
+  id: Int!
+  messages: [RoomMessage!]!
+  name: String
+  participants: [User!]!
+}
+
+type RoomMessage {
+  content: String
+  sender: User!
+  senderId: Int!
+}
+
+type User {
+  avatar: String
+  friends: [User!]!
+  id: Int!
+  name: String
+  rooms: [Room!]!
+}
+
+input Credentials {
+  name: String!
+  password: String!
+}
+
+input RoomInfo {
+  avatar: Upload
+  creatorId: Int!
+  name: String!
+  participants: [Int!]
+}
+
+
+scalar Upload

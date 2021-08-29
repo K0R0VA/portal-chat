@@ -1,0 +1,8 @@
+<ion-item routerLink="room/{{chat.id}}" detail="false" lines="none">
+  <ion-avatar slot="start">
+    <img [src]="chat.picture" alt="Нет аватара">
+  </ion-avatar>
+  <ion-label>
+    <h2>{{chat.name}}</h2>
+  </ion-label>
+</ion-item>

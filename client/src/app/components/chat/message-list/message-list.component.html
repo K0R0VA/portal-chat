@@ -1,0 +1,7 @@
+<ion-content [fullscreen]="true">
+  <ion-list>
+    <ion-item-group *ngFor="let message of messages">
+      <app-message [message]="message"></app-message>
+    </ion-item-group>
+  </ion-list>
+</ion-content>

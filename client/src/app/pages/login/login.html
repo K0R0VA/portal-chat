@@ -1,0 +1,39 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+
+    <ion-title>Login</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form #loginForm="ngForm" novalidate>
+    <ion-list>
+      <ion-item>
+        <ion-label position="stacked" color="primary">Логин</ion-label>
+        <ion-input [(ngModel)]="login" name="Логин" type="text" spellcheck="false" autocapitalize="off"
+          required>
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked" color="primary">Пароль</ion-label>
+        <ion-input [(ngModel)]="password" name="Пароль" type="password" required>
+        </ion-input>
+      </ion-item>
+
+    </ion-list>
+
+    <ion-row>
+      <ion-col>
+        <ion-button (click)="signIn()" type="submit" expand="block">Войти</ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="signUp()" color="light" expand="block">Signup</ion-button>
+      </ion-col>
+    </ion-row>
+  </form>
+
+</ion-content>

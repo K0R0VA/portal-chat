@@ -1,0 +1,12 @@
+<ion-footer absolute bottom="5vh">
+  <ion-item>
+    <ion-input (keydown.enter)="submit()"
+               type="text"
+               placeholder="Введите сообщение"
+               [(ngModel)]="text"
+    >
+    </ion-input>
+    <ion-icon name="chatbubble-ellipses-outline" (click)="submit()">
+    </ion-icon>
+  </ion-item>
+</ion-footer>

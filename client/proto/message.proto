@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+enum MessageType {
+  CONTACT = 0;
+  GROUP = 1;
+}
+
+message ClientMessage {
+  int32 sender_id = 1;
+  string text = 2;
+  optional bytes media = 3;
+  MessageType request_type = 4;
+  int32 recipient_id = 5;
+}
+
+message ServerMessage {
+  int32 sender_id = 1;
+  string text = 2;
+  MessageType request_type = 4;
+}
