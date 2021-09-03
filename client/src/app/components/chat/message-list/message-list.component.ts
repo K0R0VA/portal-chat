@@ -6,7 +6,7 @@ import {Message} from '../../../interfaces/message';
   templateUrl: './message-list.component.html',
 })
 export class MessageListComponent implements OnInit {
-  @Input() messages: Message[];
+  @Input() messages!: Message[];
 
   constructor() { }
 

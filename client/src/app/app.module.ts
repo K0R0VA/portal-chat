@@ -31,6 +31,7 @@ import {GraphqlServiceModule} from './services/graphql/graphql-service.module';
     }),
     GraphQLModule,
     GraphqlServiceModule,
+    // @ts-ignore
     MainWebSocketModule.config({
       url: environment.ws,
       binaryType: 'arraybuffer',

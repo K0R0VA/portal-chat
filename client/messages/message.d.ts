@@ -18,6 +18,7 @@ export class ClientMessage implements IClientMessage {
     public text: string;
 
     /** ClientMessage media. */
+    // @ts-ignore
     public media?: (Uint8Array|null);
 
     /** ClientMessage requestType. */

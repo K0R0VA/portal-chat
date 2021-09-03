@@ -8,7 +8,7 @@ import { EventEmitter } from '@angular/core';
 
 export class ChatFooterComponent implements OnInit {
   @Output() messageSubmit: EventEmitter<string> = new EventEmitter();
-  text: string;
+  text!: string;
   constructor() { }
 
   ngOnInit() {}

@@ -11,7 +11,7 @@ import { AlertController } from '@ionic/angular';
 export class AccountPage implements AfterViewInit {
   ngAfterViewInit(): void {
   }
-  username: string;
+  username!: string;
 
   constructor(
     public alertCtrl: AlertController,

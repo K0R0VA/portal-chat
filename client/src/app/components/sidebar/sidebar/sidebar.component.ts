@@ -9,7 +9,7 @@ import {Chat} from '../../../interfaces/chat';
   providers: [NavigationComponent,]
 })
 export class SidebarComponent implements OnInit {
-  public chats: Observable<Chat[]>;
+  public chats: Observable<Chat[]> = new Observable();
 
   constructor() {
   }

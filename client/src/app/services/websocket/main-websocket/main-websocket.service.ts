@@ -23,7 +23,7 @@ export class MainWebsocketService extends AbstractWebsocket<IServerMessage, Resp
       deserializer: msg => new Uint8Array(msg.data as ArrayBuffer),
       closeObserver: {
         next: (event: CloseEvent) => {
-          this.websocket$ = null;
+          this.websocket$.unsubscribe();
           this.connection$.next(false);
         }
       },

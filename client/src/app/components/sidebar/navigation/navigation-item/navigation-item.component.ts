@@ -6,7 +6,7 @@ import {Chat} from '../../../../interfaces/chat';
   templateUrl: './navigation-item.component.html',
 })
 export class NavigationItemComponent implements OnInit {
-  @Input() chat: Chat;
+  @Input() chat!: Chat;
   constructor() { }
 
   ngOnInit() {}

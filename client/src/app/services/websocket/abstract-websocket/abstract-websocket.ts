@@ -16,20 +16,20 @@ export abstract class AbstractWebsocket
   >
   implements IWebsocketService<ResponseMessage, Request>, OnDestroy {
 
-  protected config: WebSocketSubjectConfig<ArrayBuffer>;
-  protected websocket$: WebSocketSubject<ArrayBuffer>;
-  protected deserializer: ResponseDeserializer;
+  protected config!: WebSocketSubjectConfig<Uint8Array>;
+  protected websocket$!: WebSocketSubject<Uint8Array>;
+  protected deserializer!: ResponseDeserializer;
   private websocketSub: SubscriptionLike;
   private statusSub: SubscriptionLike;
 
-  private reconnection$: Observable<number>;
+  private reconnection$!: Observable<number>;
 
-  protected connection$: Observer<boolean>;
+  protected connection$!: Observer<boolean>;
   private wsMessages$: Subject<ResponseMessage>;
 
   private reconnectInterval: number;
   private readonly reconnectAttempts: number;
-  private isConnected: boolean;
+  private isConnected!: boolean;
 
   public status: Observable<boolean>;
 
@@ -79,7 +79,7 @@ export abstract class AbstractWebsocket
       null,
       () => {
         // Subject complete if reconnect attemts ending
-        this.reconnection$ = null;
+        this.reconnection$ = null as unknown as Observable<number>;
 
         if (!this.websocket$) {
           this.wsMessages$.complete();
@@ -103,7 +103,6 @@ export abstract class AbstractWebsocket
   ngOnDestroy(): void {
     this.websocketSub.unsubscribe();
     this.statusSub.unsubscribe();
-    this.deserializer = null;
-
+    this.deserializer = null as unknown as ResponseDeserializer;
   }
 }

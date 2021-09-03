@@ -6,7 +6,7 @@ import {Message} from '../../../interfaces/message';
   templateUrl: './message.component.html',
 })
 export class MessageComponent implements OnInit {
-  @Input() message: Message;
+  @Input() message!: Message;
 
   constructor() { }
 

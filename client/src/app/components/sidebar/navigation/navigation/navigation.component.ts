@@ -7,7 +7,7 @@ import {Chat} from '../../../../interfaces/chat';
   templateUrl: './navigation.component.html',
 })
 export class NavigationComponent implements OnInit {
-  @Input() chats: Observable<Chat[]>
+  @Input() chats: Observable<Chat[]> = new Observable();
 
   constructor() { }
 

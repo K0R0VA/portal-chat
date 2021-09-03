@@ -1,6 +1,7 @@
 import {Injectable, OnDestroy} from '@angular/core';
 import {BehaviorSubject, Observable, Subscription} from 'rxjs';
 import {User} from '../../interfaces/user';
+import {Option, none, some} from 'fp-ts/Option';
 import {UserGQL} from '../graphql/queries/user/user.service';
 
 @Injectable({
@@ -8,8 +9,8 @@ import {UserGQL} from '../graphql/queries/user/user.service';
 })
 export class UserService implements OnDestroy {
 
-  private user: BehaviorSubject<User> = new BehaviorSubject<User>(null);
-  private subscription: Subscription;
+  private user = new BehaviorSubject<Option<User>>(none);
+  private subscription: Subscription = new Subscription();
 
   constructor(private userQueryService: UserGQL) {
     let id = localStorage.getItem('user');
@@ -17,22 +18,22 @@ export class UserService implements OnDestroy {
       this.subscription = this.userQueryService
         .fetch(Number(id))
         .subscribe(({data}) => {
-          this.user.next(data);
+          this.user.next(some(data));
         });
     }
   }
 
-  getUser(): Observable<User> {
+  getUser(): Observable<Option<User>> {
     return this.user.asObservable();
   }
 
-  setUser(user: User) {
+  setUser(user: User): void {
     localStorage.setItem('user', String(user.id));
-    this.user.next(user);
+    this.user.next(some(user));
   }
 
-  clear() {
-    this.user.next(null);
+  clear(): void {
+    this.user.next(none);
   }
 
   ngOnDestroy(): void {
