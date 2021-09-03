@@ -21,7 +21,7 @@ impl Handler<LeavePrivateLobby> for PrivateStreamingLobby {
             StreamSessionStatus::Caller => {
                 self.caller = None;
                 if let Some(receiver) = self.receiver.as_ref() {
-                    receiver.send(ConsumerLeave)
+                    receiver.send(ConsumerLeave);
                 }
             }
             StreamSessionStatus::Receiver => {

@@ -20,8 +20,8 @@ trait Session: Actor<Context = WebsocketContext<Self>> {
     fn get_heartbeat(&self) -> Instant;
 
     fn init_heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
-        ctx.run_interval(self.HEARTBEAT_INTERVAL, |actor, ctx| {
-            if Instant::now().duration_since(actor.get_heartbeat()) > self.CLIENT_TIMEOUT {
+        ctx.run_interval(Self::HEARTBEAT_INTERVAL, |actor, ctx| {
+            if Instant::now().duration_since(actor.get_heartbeat()) > Self::CLIENT_TIMEOUT {
                 ctx.stop();
                 return;
             }

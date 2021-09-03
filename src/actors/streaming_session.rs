@@ -43,7 +43,7 @@ struct Transports {
 }
 
 #[repr(u8)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum StreamSessionStatus {
     Caller,
     Receiver
