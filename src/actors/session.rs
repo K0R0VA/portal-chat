@@ -22,7 +22,7 @@ pub struct CommonSession {
 }
 
 impl MessageResponse<ChatState, Connect> for CommonSession {
-    fn handle<R: ResponseChannel<Connect>>(self, ctx: &mut Context<ChatState>, tx: Option<R>) {
+    fn handle<R: ResponseChannel<Connect>>(self, _: &mut Context<ChatState>, tx: Option<R>) {
         if let Some(sender) = tx {
             sender.send(self)
         }

@@ -9,8 +9,8 @@ pub mod file_writer;
 pub mod mutation_handlers;
 pub mod user;
 pub mod state_storage;
-pub mod private_streaming_lobby;
-pub mod streaming_session;
+// pub mod private_streaming_lobby;
+// pub mod streaming_session;
 
 trait Session: Actor<Context = WebsocketContext<Self>> {
 

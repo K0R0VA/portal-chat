@@ -2,8 +2,8 @@
   "name": "portal-chat",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "ng build --watch",
+    "build": "ng build --configuration production",
     "postinstall": "webdriver-manager update --standalone false --gecko false"
   },
   "dependencies": {

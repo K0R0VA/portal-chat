@@ -1,8 +1,7 @@
 use async_graphql::{Object, Context, Result};
 use serde::Deserialize;
 
-use crate::graphql::models::user::{User};
-use itertools::Itertools;
+use crate::graphql::models::user::User;
 use async_graphql::dataloader::DataLoader;
 use crate::graphql::models::room_message::RoomMessage;
 use crate::graphql::loaders::participants_loader::ParticipantsLoader;
@@ -35,15 +34,6 @@ impl Room {
         participants.ok_or_else(|| "Not found any participants".into())
     }
     async fn messages(&self, ctx: &Context<'_>) -> Result<Option<Vec<RoomMessage>>> {
-        let fields = ctx
-            .field()
-            .selection_set()
-            .filter(|field|  match field.name() {
-                "user" | "id" => false,
-                _ => true
-            })
-            .map(|field| field.name())
-            .join(",");
         let loader = ctx
             .data_unchecked::<DataLoader<RoomMessagesLoader>>();
         let messages = loader.load_one(RoomId(self.id)).await?;

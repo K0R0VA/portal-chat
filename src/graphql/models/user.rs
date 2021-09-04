@@ -1,6 +1,5 @@
 use async_graphql::{Object, Context, Result};
-use async_graphql::dataloader::{DataLoader};
-use itertools::Itertools;
+use async_graphql::dataloader::DataLoader;
 use serde::Deserialize;
 
 use crate::graphql::models::room::Room;

@@ -137,7 +137,7 @@ impl Handler<RoomMessage> for User {
 impl Handler<UserChats> for User {
     type Result = ();
 
-    fn handle(&mut self, msg: UserChats, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: UserChats, _: &mut Self::Context) -> Self::Result {
         self.rooms = msg.rooms;
         self.contacts = msg.contacts;
     }

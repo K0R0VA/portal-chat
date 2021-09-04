@@ -2,5 +2,6 @@ target
 cert
 sources
 .vscode
+dist
 
 Cargo.lock

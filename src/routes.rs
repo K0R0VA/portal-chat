@@ -18,7 +18,7 @@ use crate::messages::ws_messages::Connect;
 
 pub fn set_config(config: &mut ServiceConfig) {
     if let Ok(pool) = get_pool().map_err(|e| print!("{}", e)) {
-        let chat_server = ChatState::new(pool.clone()).start();
+        let chat_server = ChatState::default().start();
         let file_server = FileWriter.start();
         let builder = Schema::build(Query, Mutation, EmptySubscription);
         let builder = setup_handlers(builder, pool.clone());

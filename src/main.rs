@@ -13,29 +13,22 @@ mod storage;
 mod proto;
 mod extensions;
 
-use actix_web::{App, HttpServer, Result, get, web};
+use actix_web::{App, HttpServer, Result, web};
 
 use crate::tls::load_ssl;
 
 use crate::routes::set_config;
-use actix_web::web::Path;
 use actix_cors::Cors;
 
+
 async fn index() -> Result<actix_files::NamedFile> {
-    Ok(actix_files::NamedFile::open("static/index.html")?)
+    Ok(actix_files::NamedFile::open("dist/index.html")?)
 }
 
-async fn worker() -> Result<actix_files::NamedFile> {
-    Ok(actix_files::NamedFile::open("static/ngsw-worker.js")?)
-}
-
-#[get("assets/data/{path}")]
-async fn assets(path: Path<String>) -> Result<actix_files::NamedFile> {
-    Ok(actix_files::NamedFile::open(&format!("static/assets/data/{}", path.into_inner()))?)
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "actix_web=debug,actix-files=debug");
     let config = load_ssl();
     HttpServer::new(|| {
         let cors = Cors::default()
@@ -46,14 +39,13 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .service(actix_files::Files::new("/sources", "sources")
                 .prefer_utf8(true))
-            .service(actix_files::Files::new("/static", "static")
-                .prefer_utf8(true))
-            .service(web::resource("ngsw-worker.js").route(web::get().to(worker)))
+            .service(actix_files::Files::new("/dist", "./dist/")
+                .prefer_utf8(true)
+            )
             .default_service(
-                web::resource("")
+                web::resource("/")
                     .route(web::get().to(index))
             )
-            .service(assets)
             .configure(set_config)
     })
         .bind_rustls("192.168.0.7:8081", config)?

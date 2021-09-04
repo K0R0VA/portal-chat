@@ -1,5 +1,4 @@
 use async_graphql::{Object, Context, Result};
-use itertools::Itertools;
 use async_graphql::dataloader::DataLoader;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
