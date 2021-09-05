@@ -22,7 +22,7 @@ use actix_cors::Cors;
 
 
 async fn index() -> Result<actix_files::NamedFile> {
-    Ok(actix_files::NamedFile::open("dist/index.html")?)
+    Ok(actix_files::NamedFile::open("index.html")?)
 }
 
 
@@ -39,7 +39,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .service(actix_files::Files::new("/sources", "sources")
                 .prefer_utf8(true))
-            .service(actix_files::Files::new("/dist", "./dist/")
+            .service(actix_files::Files::new("/", ".dist")
                 .prefer_utf8(true)
             )
             .default_service(
