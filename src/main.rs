@@ -5,50 +5,36 @@
 
 #[forbid(unsafe_code, incomplete_features)]
 mod actors;
-mod routes;
-mod messages;
-mod tls;
-mod graphql;
-mod storage;
-mod proto;
 mod extensions;
+mod graphql;
+mod messages;
+mod proto;
+mod routes;
+mod storage;
+mod tls;
 
-use actix_web::{App, HttpServer, Result, web};
-
-use crate::tls::load_ssl;
+use actix_web::{ web, App, HttpServer, Result};
 
 use crate::routes::set_config;
-use actix_cors::Cors;
-
+use crate::tls::load_ssl;
 
 async fn index() -> Result<actix_files::NamedFile> {
     Ok(actix_files::NamedFile::open("index.html")?)
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=debug,actix-files=debug");
     let config = load_ssl();
     HttpServer::new(|| {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header();
         App::new()
-            .wrap(cors)
-            .service(actix_files::Files::new("/sources", "sources")
-                .prefer_utf8(true))
-            .service(actix_files::Files::new("/", ".dist")
-                .prefer_utf8(true)
-            )
+            .service(actix_files::Files::new("/sources", "sources").prefer_utf8(true))
+            .service(actix_files::Files::new("/", ".dist").prefer_utf8(true))
             .default_service(
                 web::resource("/")
-                    .route(web::get().to(index))
-            )
+                    .route(web::get().to(index)))
             .configure(set_config)
     })
-        .bind_rustls("192.168.0.7:8081", config)?
-        .run()
-        .await
+    .bind_rustls("192.168.0.7:8081", config)?
+    .run()
+    .await
 }
