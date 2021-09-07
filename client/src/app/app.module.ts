@@ -26,9 +26,8 @@ import {GraphqlServiceModule} from './services/graphql/graphql-service.module';
     FormsModule,
     IonicModule.forRoot(),
     IonicStorageModule.forRoot(),
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: environment.production,
-    }),
+    ServiceWorkerModule.register('dist/ngsw-worker.js',
+    ),
     GraphQLModule,
     GraphqlServiceModule,
     // @ts-ignore
@@ -46,5 +45,4 @@ import {GraphqlServiceModule} from './services/graphql/graphql-service.module';
   providers: [SplashScreen, StatusBar],
   bootstrap: [AppComponent]
 })
-export class AppModule {
-}
+export class AppModule {}
